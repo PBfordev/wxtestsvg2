@@ -199,7 +199,7 @@ void wxTestSVG2Frame::OnFileSelected(wxFileCtrlEvent& event)
     const wxFileName fileName(event.GetDirectory(), event.GetFile());
 
     m_panelNano->SetBitmapBundle(wxBitmapBundle::FromSVGFile(fileName.GetFullPath(), m_bitmapSize));
-    m_panelLuna->SetBitmapBundle(CreateFromFileWithLunaSVG(fileName.GetFullPath(), m_bitmapSize));
+    m_panelLuna->SetBitmapBundle(CreateWithLunaSVGFromFile(fileName.GetFullPath(), m_bitmapSize));
 }
 
 void wxTestSVG2Frame::OnFileActivated(wxFileCtrlEvent& event)

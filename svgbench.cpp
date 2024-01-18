@@ -7,10 +7,7 @@
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <algorithm>
-#include <climits>
-#include <numeric>
-
+#include <wx/buffer.h>
 #include <wx/dirdlg.h>
 #include <wx/ffile.h>
 #include <wx/filename.h>
@@ -18,9 +15,19 @@
 #include <wx/textfile.h>
 #include <wx/webview.h>
 
-#include "bmpbndl_lunasvg.h"
+#include <algorithm>
+#include <climits>
+#include <numeric>
 
 #include "svgbench.h"
+
+#include "bmpbndl_lunasvg.h"
+
+
+// 0 means the benchmark will include only wxBitmapBundle::ToBitmap() while
+// any other value means the benchmark will also include creating
+// wxBitmapBundle from an in-memory SVG
+#define WXSVGTEST2_BENCH_FULL 1
 
 // ============================================================================
 // wxTestSVGRasterizationBenchmark
@@ -39,14 +46,48 @@ void wxTestSVGRasterizationBenchmark::Setup(const wxString& dirName,
     m_sizes     = sizes;
 }
 
-wxBitmapBundle CreateBitmapBundleNano(const wxString& fileName)
+wxMemoryBuffer LoadSVGFromFile(const wxString& path)
 {
-    return wxBitmapBundle::FromSVGFile(fileName, wxSize(2, 2));
+#if wxUSE_FFILE
+    wxFFile file(path, "rb");
+#elif wxUSE_FILE
+    wxFile file(path);
+#else
+    #error "wxWidgets must be built with support for wxFFile or wxFile."
+#endif
+    if ( file.IsOpened() )
+    {
+        const wxFileOffset lenAsOfs = file.Length();
+        if ( lenAsOfs != wxInvalidOffset )
+        {
+            const size_t len = static_cast<size_t>(lenAsOfs);
+            wxMemoryBuffer buf(len);
+
+            if ( file.Read(static_cast<char*>(buf.GetWriteBuf(len)), len) == len )
+            {
+                buf.UngetWriteBuf(len);
+                return buf;
+            }
+        }
+    }
+
+    return wxMemoryBuffer();
 }
 
-wxBitmapBundle CreateBitmapBundleLuna(const wxString& fileName)
+wxBitmapBundle CreateBitmapBundleNanoFromMemory(const wxMemoryBuffer& buf)
 {
-    return CreateFromFileWithLunaSVG(fileName, wxSize(2, 2));
+    if ( !buf.IsEmpty() )
+        return wxBitmapBundle::FromSVG(static_cast<wxByte*>(buf.GetData()), buf.GetDataLen(), wxSize(2, 2));
+
+    return wxBitmapBundle();
+}
+
+wxBitmapBundle CreateBitmapBundleLunaFromMemory(const wxMemoryBuffer& buf)
+{
+    if ( !buf.IsEmpty() )
+        return CreateWithLunaSVGFromMemory(static_cast<wxByte*>(buf.GetData()), buf.GetDataLen(), wxSize(2, 2));
+
+    return wxBitmapBundle();
 }
 
 bool wxTestSVGRasterizationBenchmark::Run(size_t runCount,
@@ -61,9 +102,11 @@ bool wxTestSVGRasterizationBenchmark::Run(size_t runCount,
 
     for ( size_t f = 0; f < m_fileNames.size(); ++f )
     {
-        if ( !BenchmarkFile(CreateBitmapBundleNano, m_fileNames[f], runCount, timesNano[f]) )
+        const wxString fileName = wxFileName(m_dirName, m_fileNames[f]).GetFullPath();
+
+        if ( !BenchmarkFile(CreateBitmapBundleNanoFromMemory, fileName, runCount, timesNano[f]) )
             return false;
-        if ( !BenchmarkFile(CreateBitmapBundleLuna, m_fileNames[f], runCount, timesLuna[f]) )
+        if ( !BenchmarkFile(CreateBitmapBundleLunaFromMemory, fileName, runCount, timesLuna[f]) )
             return false;
     }
 
@@ -101,6 +144,10 @@ bool wxTestSVGRasterizationBenchmark::BenchmarkFile(CreateBitmapBundleFn fn,
                                                     size_t runCount, MatrixLong2& times)
 {
     wxStopWatch stopWatch;
+    const wxMemoryBuffer buf = LoadSVGFromFile(fileName);
+
+    if ( buf.IsEmpty() )
+        return false;
 
     times.resize(m_sizes.size());
     for ( auto& t : times )
@@ -108,8 +155,11 @@ bool wxTestSVGRasterizationBenchmark::BenchmarkFile(CreateBitmapBundleFn fn,
 
     for ( size_t run = 0; run < runCount; ++run )
     {
-        const wxBitmapBundle bundle = fn(wxFileName(m_dirName, fileName).GetFullPath());
 
+#if !WXSVGTEST2_BENCH_FULL
+        // do not include bundle creation in benchmark
+        const wxBitmapBundle bundle = fn(buf);
+#endif
         wxBitmap   bitmap;
         wxLongLong time;
 
@@ -118,15 +168,22 @@ bool wxTestSVGRasterizationBenchmark::BenchmarkFile(CreateBitmapBundleFn fn,
             const wxSize& bitmapSize = m_sizes[s];
 
             stopWatch.Start();
+#if WXSVGTEST2_BENCH_FULL
+            // include bundle creation in benchmark
+            const wxBitmapBundle bundle = fn(buf);
+#endif
+            if ( !bundle.IsOk() )
+                return false;
             bitmap = bundle.GetBitmap(bitmapSize);
             time = stopWatch.TimeInMicro();
-            times[s][run] = time.ToLong();
 
             if ( !bitmap.IsOk() )
              {
                 wxLogError("Couldn't rasterize file '%s' at size %dx%d.", fileName, bitmapSize.x, bitmapSize.y);
                 return false;
             }
+
+            times[s][run] = time.ToLong();
         }
     }
 

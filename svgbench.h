@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <wx/wx.h>
+#include <wx/buffer.h>
 
 // ============================================================================
 // wxTestSVGRasterizationBenchmark
@@ -44,7 +45,7 @@ private:
     using VectorStats = std::vector<Stats>;
     using MatrixStats = std::vector<VectorStats>;
 
-    using CreateBitmapBundleFn = wxBitmapBundle (*) (const wxString&);
+    using CreateBitmapBundleFn = wxBitmapBundle (*) (const wxMemoryBuffer&);
 
     wxString            m_dirName;
     wxArrayString       m_fileNames;

@@ -10,11 +10,12 @@
 #ifndef BMPBUNDLE_IMPL_LUNA_H_DEFINED
 #define BMPBUNDLE_IMPL_LUNA_H_DEFINED
 
-class wxBitmapBundle;
-class wxSize;
-class wxString;
+#include <wx/wx.h>
+
+// Creates wxBitmapBundle from in-memory SVG using wxBitmapBundleImplLunaSVG
+wxBitmapBundle CreateWithLunaSVGFromMemory(const wxByte* data, size_t len, const wxSize& sizeDef);
 
 // Creates wxBitmapBundle from SVG file using wxBitmapBundleImplLunaSVG
-wxBitmapBundle CreateFromFileWithLunaSVG(const wxString& path, const wxSize& sizeDef);
+wxBitmapBundle CreateWithLunaSVGFromFile(const wxString& path, const wxSize& sizeDef);
 
 #endif // #ifndef BMPBUNDLE_IMPL_LUNA_H_DEFINED

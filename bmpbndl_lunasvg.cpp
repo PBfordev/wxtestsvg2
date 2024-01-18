@@ -9,12 +9,12 @@
 
 
 #include <wx/bmpbndl.h>
+#include <wx/buffer.h>
 #if wxUSE_FFILE
     #include <wx/ffile.h>
 #elif wxUSE_FILE
     #include <wx/file.h>
 #endif
-
 #include <wx/log.h>
 #include <wx/rawbmp.h>
 
@@ -44,13 +44,13 @@ public:
 
     // wxBitmapBundleImplLunaSVG doesn't take its ownership of data and it
     // can be deleted after the ctor was called. len is data length in bytes.
-    wxBitmapBundleImplLunaSVG(const char* data, size_t len, const wxSize& sizeDef);
+    wxBitmapBundleImplLunaSVG(const wxByte* data, size_t len, const wxSize& sizeDef);
 
     virtual wxSize GetDefaultSize() const override;
     virtual wxSize GetPreferredBitmapSizeAtScale(double scale) const override;
-    
+
     virtual wxBitmap GetBitmap(const wxSize& size) override;
-    
+
     bool IsOk() const;
 private:
     const wxSize m_sizeDef;
@@ -63,8 +63,14 @@ private:
 };
 
 
+// Creates wxBitmapBundle from in-memory SVG using wxBitmapBundleImplLunaSVG
+wxBitmapBundle CreateWithLunaSVGFromMemory(const wxByte* data, size_t len, const wxSize& sizeDef)
+{
+    return wxBitmapBundle::FromImpl(new wxBitmapBundleImplLunaSVG(data, len, sizeDef));
+}
+
 // Creates wxBitmapBundle from SVG file using wxBitmapBundleImplLunaSVG
-wxBitmapBundle CreateFromFileWithLunaSVG(const wxString& path, const wxSize& sizeDef)
+wxBitmapBundle CreateWithLunaSVGFromFile(const wxString& path, const wxSize& sizeDef)
 {
 #if wxUSE_FFILE
     wxFFile file(path, "rb");
@@ -80,10 +86,10 @@ wxBitmapBundle CreateFromFileWithLunaSVG(const wxString& path, const wxSize& siz
         {
             const size_t len = static_cast<size_t>(lenAsOfs);
             wxMemoryBuffer buf(len);
-            char* const  ptr = static_cast<char*>(buf.GetData());
+            wxByte* const  ptr = static_cast<wxByte*>(buf.GetData());
 
             if ( file.Read(ptr, len) == len )
-                return wxBitmapBundle::FromImpl(new wxBitmapBundleImplLunaSVG(ptr, len, sizeDef));
+                return CreateWithLunaSVGFromMemory(ptr, len, sizeDef);
         }
     }
 
@@ -104,14 +110,14 @@ wxBitmapBundleImplLunaSVG::wxBitmapBundleImplLunaSVG(const char* data, const wxS
     m_svgDocument = lunasvg::Document::loadFromData(data);
 }
 
-wxBitmapBundleImplLunaSVG::wxBitmapBundleImplLunaSVG(const char* data, size_t len, const wxSize& sizeDef)
+wxBitmapBundleImplLunaSVG::wxBitmapBundleImplLunaSVG(const wxByte* data, size_t len, const wxSize& sizeDef)
     : m_sizeDef(sizeDef)
 {
     wxCHECK_RET(data != nullptr, "null data");
     wxCHECK_RET(len > 0, "zero length");
     wxCHECK_RET(sizeDef.GetWidth() > 0 && sizeDef.GetHeight() > 0, "invalid default size");
 
-    m_svgDocument = lunasvg::Document::loadFromData(data, len);
+    m_svgDocument = lunasvg::Document::loadFromData(reinterpret_cast<const char*>(data), len);
 }
 
 wxSize wxBitmapBundleImplLunaSVG::GetDefaultSize() const
