@@ -150,6 +150,7 @@ wxBitmap wxBitmapBundleImplLunaSVG::DoRasterize(const wxSize& size)
 {
     if ( IsOk() )
     {
+        // conversion to wxBitmap is based on the code in lunasvg::Bitmap::convert()
         const lunasvg::Bitmap lbmp = m_svgDocument->renderToBitmap(size.x, size.y);
 
         if ( lbmp.valid() )
