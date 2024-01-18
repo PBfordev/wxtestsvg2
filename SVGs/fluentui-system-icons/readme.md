@@ -1,0 +1,1 @@
+From Microsoft Fluent System Icons at https://github.com/microsoft/fluentui-system-icons

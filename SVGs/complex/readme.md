@@ -1,0 +1,1 @@
+Complex SVGs, taken from https://dev.w3.org/SVG/tools/svgweb/samples/svg-files/
