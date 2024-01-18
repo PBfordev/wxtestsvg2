@@ -42,7 +42,7 @@ public:
     // take its ownership and it can be deleted after the ctor was called.
     wxBitmapBundleImplLunaSVG(const char* data, const wxSize& sizeDef);
 
-    // wxBitmapBundleImplLunaSVG doesn't take its ownership of data and it
+    // wxBitmapBundleImplLunaSVG doesn't take ownership of data and it
     // can be deleted after the ctor was called. len is data length in bytes.
     wxBitmapBundleImplLunaSVG(const wxByte* data, size_t len, const wxSize& sizeDef);
 
@@ -84,12 +84,14 @@ wxBitmapBundle CreateWithLunaSVGFromFile(const wxString& path, const wxSize& siz
         const wxFileOffset lenAsOfs = file.Length();
         if ( lenAsOfs != wxInvalidOffset )
         {
-            const size_t len = static_cast<size_t>(lenAsOfs);
+           const size_t len = static_cast<size_t>(lenAsOfs);
             wxMemoryBuffer buf(len);
-            wxByte* const  ptr = static_cast<wxByte*>(buf.GetData());
 
-            if ( file.Read(ptr, len) == len )
-                return CreateWithLunaSVGFromMemory(ptr, len, sizeDef);
+            if ( file.Read(static_cast<char*>(buf.GetWriteBuf(len)), len) == len )
+            {
+                buf.UngetWriteBuf(len);
+                return CreateWithLunaSVGFromMemory(static_cast<wxByte*>(buf.GetData()), len, sizeDef);
+            }
         }
     }
 
