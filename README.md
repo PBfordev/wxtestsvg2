@@ -5,11 +5,16 @@ when used as a rasterization tool for `wxBitmapBundle`.
 
 ![wxTestSVG2 Screenshot](wxtestsvg2-screenshot.png?raw=true)
 
-Surprisingly, LunaSVG seems consistently noticeably faster when using on popular
-icon sets (Tango, flat-color-icons, fluentui-system-icons, material-design-icons)
-when testing at resolutions expected for GUI icons.
+The value of `#define WXSVGTEST2_BENCH_FULL` (in svgbench.cpp) affects what
+is benchmarked: 0 means that the benchmark will include only `wxBitmapBundle::ToBitmap()`
+times while non-zero means the benchmark will also include time needed for creating
+wxBitmapBundle from an in-memory SVG.
 
-Tested only 64-bit release build on Windows with MSVS 2022 and GCC 13.2.
+Surprisingly, LunaSVG seems consistently noticeably faster when using on popular
+icon sets (Tango, Flat Color, Fluent UI, or Material Design; bundled in the SVG folder)
+when testing at resolutions expected for GUI icons, regardless of `WXSVGTEST2_BENCH_FULL` value.
+
+Tested only 64-bit release build on Windows with MSVS v17.8.5 and GCC 13.2.
 
 Build Requirements
 ---------
