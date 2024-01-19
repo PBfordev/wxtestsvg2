@@ -152,8 +152,7 @@ wxBitmap wxBitmapBundleImplLunaSVG::DoRasterize(const wxSize& size)
     if ( IsOk() )
     {
         const auto scale = wxMin(size.x/m_svgDocument->width(), size.y/m_svgDocument->height());
-        const auto documentMatrix = m_svgDocument->matrix();
-        const auto scaleMatrix = documentMatrix.scaled(scale, scale);
+        const auto scaleMatrix = lunasvg::Matrix::scaled(scale, scale);
         lunasvg::Bitmap lbmp(size.x, size.y);
 
         lbmp.clear(0);
