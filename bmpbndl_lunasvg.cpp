@@ -17,6 +17,7 @@
 #endif
 #include <wx/log.h>
 #include <wx/rawbmp.h>
+#include <wx/utils.h>
 
 #include <memory>
 
@@ -150,9 +151,15 @@ wxBitmap wxBitmapBundleImplLunaSVG::DoRasterize(const wxSize& size)
 {
     if ( IsOk() )
     {
-        // conversion to wxBitmap is based on the code in lunasvg::Bitmap::convert()
-        const lunasvg::Bitmap lbmp = m_svgDocument->renderToBitmap(size.x, size.y);
+        const auto scale = wxMin(size.x/m_svgDocument->width(), size.y/m_svgDocument->height());
+        const auto documentMatrix = m_svgDocument->matrix();
+        const auto scaleMatrix = documentMatrix.scaled(scale, scale);
+        lunasvg::Bitmap lbmp(size.x, size.y);
 
+        lbmp.clear(0);
+        m_svgDocument->render(lbmp, scaleMatrix);
+
+        // conversion to wxBitmap is based on the code in lunasvg::Bitmap::convert()
         if ( lbmp.valid() )
         {
             const auto width = lbmp.width();
