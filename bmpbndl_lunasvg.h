@@ -7,10 +7,15 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef BMPBUNDLE_IMPL_LUNA_H_DEFINED
-#define BMPBUNDLE_IMPL_LUNA_H_DEFINED
+#ifndef BMPBNDL_LUNASVG_H_DEFINED
+#define BMPBNDL_LUNASVG_H_DEFINED
 
-#include <wx/wx.h>
+#include <wx/types.h>
+#include <cstddef>
+
+class wxBitmapBundle;
+class wxSize;
+class wxString;
 
 // Creates wxBitmapBundle from in-memory SVG using wxBitmapBundleImplLunaSVG
 wxBitmapBundle CreateWithLunaSVGFromMemory(const wxByte* data, size_t len, const wxSize& sizeDef);
@@ -18,4 +23,4 @@ wxBitmapBundle CreateWithLunaSVGFromMemory(const wxByte* data, size_t len, const
 // Creates wxBitmapBundle from SVG file using wxBitmapBundleImplLunaSVG
 wxBitmapBundle CreateWithLunaSVGFromFile(const wxString& path, const wxSize& sizeDef);
 
-#endif // #ifndef BMPBUNDLE_IMPL_LUNA_H_DEFINED
+#endif // #ifndef BMPBNDL_LUNASVG_H_DEFINED

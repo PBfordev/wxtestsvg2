@@ -12,10 +12,9 @@
 #include <wx/busyinfo.h>
 #include <wx/choicdlg.h>
 #include <wx/config.h>
+#include <wx/dcbuffer.h>
 #include <wx/dir.h>
 #include <wx/dirdlg.h>
-#include <wx/dcbuffer.h>
-#include <wx/ffile.h>
 #include <wx/filectrl.h>
 #include <wx/filename.h>
 #include <wx/numdlg.h>
@@ -24,9 +23,10 @@
 #include <wx/statline.h>
 #include <wx/utils.h>
 
-#include "svgframe.h"
 #include "svgbench.h"
 #include "bmpbndl_lunasvg.h"
+
+#include "svgframe.h"
 
 
 // ============================================================================
@@ -82,17 +82,16 @@ void wxBitmapBundlePanel::SetBitmapSize(const wxSize& size)
 
 void wxBitmapBundlePanel::OnPaint(wxPaintEvent&)
 {
-    const wxSize   clientSize(GetClientSize());
-
     wxAutoBufferedPaintDC dc(this);
-    wxBitmap              bitmap;
 
     DoPrepareDC(dc);
-
     dc.SetBackground(*wxWHITE);
     dc.Clear();
-    bitmap = m_bitmapBundle.GetBitmap(m_bitmapSize);
 
+    if ( !m_bitmapBundle.IsOk() )
+        return;
+    
+    const wxBitmap bitmap(m_bitmapBundle.GetBitmap(m_bitmapSize));
 
     if ( bitmap.IsOk() )
     {
@@ -110,7 +109,7 @@ void wxBitmapBundlePanel::OnPaint(wxPaintEvent&)
 // ============================================================================
 
 wxTestSVG2Frame::wxTestSVG2Frame()
-    : wxFrame(nullptr, wxID_ANY, "wxTestSVG")
+    : wxFrame(nullptr, wxID_ANY, "wxTestSVG2")
 {
     wxConfigBase* config = wxConfigBase::Get();
 
@@ -138,7 +137,7 @@ wxTestSVG2Frame::wxTestSVG2Frame()
 
     controlPanelSizer->Add(new wxStaticLine(controlPanel), wxSizerFlags().Expand().Border());
 
-    wxButton* benchmarkFolderBtn = new wxButton(controlPanel, wxID_ANY, "Benchmark &Curent Folder...");
+    wxButton* benchmarkFolderBtn = new wxButton(controlPanel, wxID_ANY, "Benchmark &Current Folder...");
     benchmarkFolderBtn->Bind(wxEVT_BUTTON, &wxTestSVG2Frame::OnBenchmarkFolder, this);
     controlPanelSizer->Add(benchmarkFolderBtn, wxSizerFlags().Expand().Border());
 
@@ -146,7 +145,9 @@ wxTestSVG2Frame::wxTestSVG2Frame()
     changeFolderBtn->Bind(wxEVT_BUTTON, &wxTestSVG2Frame::OnChangeFolder, this);
     controlPanelSizer->Add(changeFolderBtn, wxSizerFlags().Expand().Border());
 
-    m_fileCtrl = new wxFileCtrl(controlPanel, wxID_ANY, m_lastSVGFolder, ".", "SVG files (*.svg)|*.svg",
+    m_fileCtrl = new wxFileCtrl(controlPanel, wxID_ANY, 
+                                m_lastSVGFolder.empty() ? wxGetCwd() : m_lastSVGFolder,
+                                ".", "SVG files (*.svg)|*.svg",
                                 wxFC_DEFAULT_STYLE | wxFC_NOSHOWHIDDEN);
     m_fileCtrl->Bind(wxEVT_FILECTRL_FILEACTIVATED, &wxTestSVG2Frame::OnFileActivated, this);
     m_fileCtrl->Bind(wxEVT_FILECTRL_SELECTIONCHANGED, &wxTestSVG2Frame::OnFileSelected, this);
@@ -157,25 +158,17 @@ wxTestSVG2Frame::wxTestSVG2Frame()
     m_panelNano = new wxBitmapBundlePanel(bitmapPanel, m_bitmapSize);
     m_panelLuna = new wxBitmapBundlePanel(bitmapPanel, m_bitmapSize);
 
-    wxFlexGridSizer* bitmapPanelSizer = new wxFlexGridSizer(m_panelLuna ? 2 : 1);
+    wxFlexGridSizer* bitmapPanelSizer = new wxFlexGridSizer(2);
 
     bitmapPanelSizer->Add(new wxStaticText(bitmapPanel, wxID_ANY, "NanoSVG"),
-                           wxSizerFlags().CenterHorizontal().Border(wxALL));
-
-    if ( m_panelLuna )
-    {
-        bitmapPanelSizer->Add(new wxStaticText(bitmapPanel, wxID_ANY, "LunaSVG"),
-                               wxSizerFlags().CenterHorizontal().Border(wxALL));
-    }
-
+                          wxSizerFlags().CenterHorizontal().Border(wxALL));
+    bitmapPanelSizer->Add(new wxStaticText(bitmapPanel, wxID_ANY, "LunaSVG"),
+                          wxSizerFlags().CenterHorizontal().Border(wxALL));
     bitmapPanelSizer->Add(m_panelNano, wxSizerFlags(1).Expand().Border());
-
-    if ( m_panelLuna )
-        bitmapPanelSizer->Add(m_panelLuna, wxSizerFlags(1).Expand().Border());
+    bitmapPanelSizer->Add(m_panelLuna, wxSizerFlags(1).Expand().Border());
 
     bitmapPanelSizer->AddGrowableCol(0, 1);
-    if ( bitmapPanelSizer->GetCols() > 1 )
-        bitmapPanelSizer->AddGrowableCol(1, 1);
+    bitmapPanelSizer->AddGrowableCol(1, 1);
     bitmapPanelSizer->AddGrowableRow(1, 1);
 
     bitmapPanel->SetSizerAndFit(bitmapPanelSizer);
@@ -280,11 +273,10 @@ void wxTestSVG2Frame::OnBenchmarkFolder(wxCommandEvent&)
          || selections.empty() )
         return;
 
-    long runCount = wxGetNumberFromUser("Number of runs (between 10 and 100)", "Number", "Benchmark Rasterization", m_lastRunCount, 10, 100);
+    const long runCount = wxGetNumberFromUser("Number of runs (between 10 and 100)", "Number", "Benchmark Rasterization", m_lastRunCount, 10, 100);
 
     if ( runCount == -1 )
         return;
-
     m_lastRunCount = runCount;
 
     wxTestSVGRasterizationBenchmark benchmark;
@@ -322,6 +314,5 @@ void wxTestSVG2Frame::OnBitmapSizeChanged(wxCommandEvent& event)
     m_bitmapSize = wxSize(event.GetInt(), event.GetInt());
 
     m_panelNano->SetBitmapSize(m_bitmapSize);
-    if ( m_panelLuna )
-        m_panelLuna->SetBitmapSize(m_bitmapSize);
+    m_panelLuna->SetBitmapSize(m_bitmapSize);
 }

@@ -53,9 +53,9 @@ public:
 
     bool IsOk() const;
 private:
+    std::unique_ptr<lunasvg::Document> m_svgDocument;
     const wxSize m_sizeDef;
     wxBitmap m_cachedBitmap;
-    std::unique_ptr<lunasvg::Document> m_svgDocument;
 
     wxBitmap DoRasterize(const wxSize& size);
 
@@ -77,14 +77,15 @@ wxBitmapBundle CreateWithLunaSVGFromFile(const wxString& path, const wxSize& siz
 #elif wxUSE_FILE
     wxFile file(path);
 #else
-    #error "wxWidgets must be built with support for wxFFile or wxFile."
+    #error "wxWidgets must be built with support for wxFFile or wxFile"
 #endif
     if ( file.IsOpened() )
     {
         const wxFileOffset lenAsOfs = file.Length();
+
         if ( lenAsOfs != wxInvalidOffset )
         {
-           const size_t len = static_cast<size_t>(lenAsOfs);
+            const size_t len = static_cast<size_t>(lenAsOfs);
             wxMemoryBuffer buf(len);
 
             if ( file.Read(static_cast<char*>(buf.GetWriteBuf(len)), len) == len )
@@ -131,7 +132,6 @@ wxSize wxBitmapBundleImplLunaSVG::GetPreferredBitmapSizeAtScale(double scale) co
 {
     return m_sizeDef*scale;
 }
-
 
 wxBitmap wxBitmapBundleImplLunaSVG::GetBitmap(const wxSize& size)
 {

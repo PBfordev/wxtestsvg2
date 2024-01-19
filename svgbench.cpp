@@ -9,7 +9,11 @@
 
 #include <wx/buffer.h>
 #include <wx/dirdlg.h>
-#include <wx/ffile.h>
+#if wxUSE_FFILE
+    #include <wx/ffile.h>
+#else
+    #error "wxWidgets must be built with support for wxFFile"    
+#endif
 #include <wx/filename.h>
 #include <wx/stopwatch.h>
 #include <wx/textfile.h>
@@ -19,15 +23,17 @@
 #include <climits>
 #include <numeric>
 
-#include "svgbench.h"
-
 #include "bmpbndl_lunasvg.h"
+
+#include "svgbench.h"
 
 
 // 0 means the benchmark will include only wxBitmapBundle::ToBitmap() while
 // any other value means the benchmark will also include creating
 // wxBitmapBundle from an in-memory SVG
-#define WXSVGTEST2_BENCH_FULL 1
+#ifndef WXSVGTEST2_BENCH_FULL
+    #define WXSVGTEST2_BENCH_FULL 1
+#endif
 
 // ============================================================================
 // wxTestSVGRasterizationBenchmark
@@ -48,13 +54,8 @@ void wxTestSVGRasterizationBenchmark::Setup(const wxString& dirName,
 
 wxMemoryBuffer LoadSVGFromFile(const wxString& path)
 {
-#if wxUSE_FFILE
     wxFFile file(path, "rb");
-#elif wxUSE_FILE
-    wxFile file(path);
-#else
-    #error "wxWidgets must be built with support for wxFFile or wxFile."
-#endif
+
     if ( file.IsOpened() )
     {
         const wxFileOffset lenAsOfs = file.Length();
@@ -157,7 +158,8 @@ bool wxTestSVGRasterizationBenchmark::BenchmarkFile(CreateBitmapBundleFn fn,
     {
 
 #if !WXSVGTEST2_BENCH_FULL
-        // do not include bundle creation in benchmark
+        // do not include bundle creation in benchmark,
+        // create it here just once outside the benched loop
         const wxBitmapBundle bundle = fn(buf);
 #endif
         wxBitmap   bitmap;
