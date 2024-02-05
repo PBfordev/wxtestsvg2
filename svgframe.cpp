@@ -90,14 +90,14 @@ void wxBitmapBundlePanel::OnPaint(wxPaintEvent&)
 
     if ( !m_bitmapBundle.IsOk() )
         return;
-    
+
     const wxBitmap bitmap(m_bitmapBundle.GetBitmap(m_bitmapSize));
 
     if ( bitmap.IsOk() )
     {
         wxBrush          hatchBrush(*wxBLUE, wxBRUSHSTYLE_CROSSDIAG_HATCH);
         wxDCBrushChanger bc(dc, hatchBrush);
-        wxDCPenChanger   pc(dc, wxNullPen);
+        wxDCPenChanger   pc(dc, *wxBLUE_PEN);
 
         dc.DrawRectangle(wxPoint(0, 0), m_bitmapSize);
         dc.DrawBitmap(bitmap, 0, 0, true);

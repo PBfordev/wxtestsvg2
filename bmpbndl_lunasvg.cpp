@@ -19,6 +19,10 @@
 #include <wx/rawbmp.h>
 #include <wx/utils.h>
 
+#ifdef __WXMSW__
+    #include <wx/msw/wrapwin.h>
+#endif
+
 #include <memory>
 
 #include <lunasvg.h>
@@ -165,8 +169,32 @@ wxBitmap wxBitmapBundleImplLunaSVG::DoRasterize(const wxSize& size)
             const auto height = lbmp.height();
             const auto stride = lbmp.stride();
             auto rowData = lbmp.data();
-
             wxBitmap bmp(width, height, 32);
+
+// Using SetDIBits() is much slower than wxAlphaPixelData loops?!
+//#ifdef __WXMSW__
+//            if ( bmp.IsDIB() && stride % sizeof(LONG) == 0 )
+//            {
+//                const HDC  hScreenDC = ::GetDC(nullptr);
+//                BITMAPINFO bitmapInfo = {0};
+//                bool       success;
+//
+//                bitmapInfo.bmiHeader.biSize        = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
+//                bitmapInfo.bmiHeader.biWidth       = size.x;
+//                bitmapInfo.bmiHeader.biHeight      = 0 - size.y;
+//                bitmapInfo.bmiHeader.biPlanes      = 1;
+//                bitmapInfo.bmiHeader.biBitCount    = 32;
+//                bitmapInfo.bmiHeader.biCompression = BI_RGB;
+//
+//                success = ::SetDIBits(hScreenDC, bmp.GetHBITMAP(), 0, bmp.GetHeight(), rowData, &bitmapInfo, DIB_RGB_COLORS) > 0;
+//                ::ReleaseDC(nullptr, hScreenDC);
+//                if ( success  )
+//                {
+//                    bmp.UseAlpha();
+//                    return bmp;
+//                }
+//            }
+//#endif
             wxAlphaPixelData bmpdata(bmp);
             wxAlphaPixelData::Iterator dst(bmpdata);
 
